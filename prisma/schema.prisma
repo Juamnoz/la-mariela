@@ -1,0 +1,45 @@
+// Prisma schema for Casa Hotel La Mariela
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model Room {
+  id           String        @id
+  name         String
+  type         String
+  maxPersons   Int
+  priceBase    Int
+  priceHigh    Int
+  description  String
+  images       String
+  reservations Reservation[]
+}
+
+model Reservation {
+  id          String   @id
+  roomId      String
+  room        Room     @relation(fields: [roomId], references: [id])
+  checkIn     DateTime
+  checkOut    DateTime
+  numPersons  Int
+  guestName   String
+  guestPhone  String
+  guestEmail  String
+  guestId     String?
+  status      String   @default("PENDING")
+  totalAmount Int
+  depositPaid Int      @default(0)
+  wompiTxId   String?
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  hosroomId   String?
+  channelRef  String?
+  source      String?  @default("directo")
+}

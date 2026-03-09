@@ -39,3 +39,15 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+/src/generated/prisma
+
+# database
+dev.db
+
+# project docs (not needed in repo)
+BD_LaMariela.pdf
+Hotel la mariela.json
+Logo la Mariela 13x16.jpg
+Prompt la mariela completo actual.txt
+imagenes habitaciones/
