@@ -1,33 +1,44 @@
 import { NextRequest, NextResponse } from "next/server";
-import db from "@/lib/db";
 import { generateWompiPaymentUrl, calculateDeposit } from "@/lib/wompi";
 
-// POST /api/pago — generate Wompi payment link for a reservation
+const LISA_API = process.env.LISA_API_URL!;
+const AGENT_ID = process.env.LISA_AGENT_ID!;
+const AGENT_TOKEN = process.env.LISA_AGENT_TOKEN!;
+
 export async function POST(request: NextRequest) {
   const body = await request.json();
-  const { reservationId } = body;
+  const { reservationId, totalAmount: bodyTotal, guestEmail: bodyEmail, guestName: bodyName } = body;
 
   if (!reservationId) {
     return NextResponse.json({ error: "reservationId es requerido" }, { status: 400 });
   }
 
-  const reservation = await db.reservation.findUnique({
-    where: { id: reservationId },
-    include: { room: true },
-  });
+  let totalAmount = bodyTotal as number | undefined;
+  let guestEmail = bodyEmail as string | undefined;
+  let guestName = bodyName as string | undefined;
 
-  if (!reservation) {
-    return NextResponse.json({ error: "Reserva no encontrada" }, { status: 404 });
+  // If we don't have enough data from the body, fetch from LISA
+  if (!totalAmount || !guestEmail) {
+    const res = await fetch(
+      `${LISA_API}/public/reservations/${AGENT_ID}/by-id/${reservationId}`,
+      { headers: { "x-agent-token": AGENT_TOKEN }, next: { revalidate: 0 } }
+    );
+    if (res.ok) {
+      const data = await res.json();
+      const r = data.reservation ?? data;
+      totalAmount = r.totalAmount ?? totalAmount;
+      guestEmail = r.guestEmail ?? guestEmail;
+      guestName = r.guestName ?? guestName;
+    }
   }
 
-  if (reservation.status === "CANCELLED") {
-    return NextResponse.json({ error: "La reserva está cancelada" }, { status: 400 });
+  if (!totalAmount) {
+    return NextResponse.json({ error: "No se pudo obtener el monto de la reserva" }, { status: 400 });
   }
 
-  const depositAmount = calculateDeposit(reservation.totalAmount);
-  const amountInCents = depositAmount * 100; // Wompi uses centavos
-
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL ?? "http://localhost:3000";
+  const depositAmount = calculateDeposit(totalAmount);
+  const amountInCents = depositAmount * 100;
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL ?? "https://casa-hotel-la-mariela.aicstudio.tech";
   const redirectUrl = `${baseUrl}/reservar/confirmacion?id=${reservationId}`;
 
   const paymentUrl = generateWompiPaymentUrl({
@@ -35,15 +46,9 @@ export async function POST(request: NextRequest) {
     amountInCents,
     currency: "COP",
     redirectUrl,
-    customerEmail: reservation.guestEmail,
-    customerName: reservation.guestName,
+    customerEmail: guestEmail,
+    customerName: guestName,
   });
 
-  return NextResponse.json({
-    paymentUrl,
-    reference: reservationId,
-    depositAmount,
-    totalAmount: reservation.totalAmount,
-    currency: "COP",
-  });
+  return NextResponse.json({ paymentUrl, reference: reservationId, depositAmount, totalAmount, currency: "COP" });
 }

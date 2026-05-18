@@ -1,135 +1,84 @@
 import { NextRequest, NextResponse } from "next/server";
-import db from "@/lib/db";
-import { CreateReservationInput } from "@/lib/types";
-import { differenceInCalendarDays, format } from "date-fns";
 
-// GET /api/reservas — list all reservations (admin)
+const LISA_API = process.env.LISA_API_URL!;
+const AGENT_ID = process.env.LISA_AGENT_ID!;
+const AGENT_TOKEN = process.env.LISA_AGENT_TOKEN!;
+
+const lisaHeaders = { "x-agent-token": AGENT_TOKEN, "Content-Type": "application/json" };
+
+// GET /api/reservas — list reservations (admin panel)
 export async function GET(request: NextRequest) {
   const { searchParams } = request.nextUrl;
   const status = searchParams.get("status");
-  const dateFrom = searchParams.get("from");
-  const dateTo = searchParams.get("to");
+  const from = searchParams.get("from");
+  const to = searchParams.get("to");
 
-  const where: Record<string, unknown> = {};
-  if (status) where.status = status;
-  if (dateFrom || dateTo) {
-    where.checkIn = {
-      ...(dateFrom ? { gte: new Date(dateFrom) } : {}),
-      ...(dateTo ? { lte: new Date(dateTo) } : {}),
-    };
-  }
+  const params = new URLSearchParams();
+  if (status) params.set("status", status);
+  if (from) params.set("from", from);
+  if (to) params.set("to", to);
 
-  const reservations = await db.reservation.findMany({
-    where,
-    include: { room: true },
-    orderBy: { createdAt: "desc" },
-  });
+  const res = await fetch(
+    `${LISA_API}/public/reservations/${AGENT_ID}/list?${params}`,
+    { headers: lisaHeaders, next: { revalidate: 0 } }
+  );
 
-  const parsed = reservations.map((r) => ({
-    ...r,
-    room: r.room
-      ? { ...r.room, images: JSON.parse(r.room.images) }
-      : undefined,
-  }));
-
-  return NextResponse.json({ reservations: parsed });
+  if (!res.ok) return NextResponse.json({ reservations: [] });
+  const data = await res.json();
+  return NextResponse.json(data);
 }
 
-// POST /api/reservas — create a new reservation
+// POST /api/reservas — create reservation via LISA public API
 export async function POST(request: NextRequest) {
-  const body: CreateReservationInput = await request.json();
-
+  const body = await request.json();
   const {
-    roomId,
-    checkIn,
-    checkOut,
-    numPersons,
-    guestName,
-    guestPhone,
-    guestEmail,
-    guestId,
-    notes,
-    source = "directo",
+    roomId, checkIn, checkOut, numPersons,
+    guestName, guestPhone, guestEmail, guestId, notes, totalAmount,
   } = body;
 
-  // Validate required fields
   if (!roomId || !checkIn || !checkOut || !numPersons || !guestName || !guestPhone || !guestEmail) {
-    return NextResponse.json(
-      { error: "Faltan campos requeridos" },
-      { status: 400 }
-    );
+    return NextResponse.json({ error: "Faltan campos requeridos" }, { status: 400 });
   }
 
-  const checkInDate = new Date(checkIn);
-  const checkOutDate = new Date(checkOut);
-
-  if (checkOutDate <= checkInDate) {
-    return NextResponse.json(
-      { error: "La fecha de salida debe ser posterior a la de llegada" },
-      { status: 400 }
-    );
-  }
-
-  // Check room exists
-  const room = await db.room.findUnique({ where: { id: roomId } });
-  if (!room) {
-    return NextResponse.json({ error: "Habitación no encontrada" }, { status: 404 });
-  }
-
-  // Check availability
-  const conflict = await db.reservation.findFirst({
-    where: {
-      roomId,
-      status: { not: "CANCELLED" },
-      AND: [
-        { checkIn: { lt: checkOutDate } },
-        { checkOut: { gt: checkInDate } },
-      ],
-    },
-  });
-
-  if (conflict) {
-    return NextResponse.json(
-      { error: "La habitación no está disponible para esas fechas" },
-      { status: 409 }
-    );
-  }
-
-  // Calculate price
-  const nights = differenceInCalendarDays(checkOutDate, checkInDate);
-  const isHighSeason = checkInDate.getMonth() >= 5 && checkInDate.getMonth() <= 8; // Jun-Sep
-  const pricePerNight = isHighSeason ? room.priceHigh : room.priceBase;
-  const totalAmount = nights * pricePerNight;
-
-  // Generate ID
-  const year = checkInDate.getFullYear();
-  const count = await db.reservation.count();
-  const id = `RES-${year}-${String(count + 1).padStart(4, "0")}`;
-
-  const reservation = await db.reservation.create({
-    data: {
-      id,
-      roomId,
-      checkIn: checkInDate,
-      checkOut: checkOutDate,
-      numPersons,
+  const res = await fetch(`${LISA_API}/public/reservations/${AGENT_ID}`, {
+    method: "POST",
+    headers: lisaHeaders,
+    body: JSON.stringify({
+      roomTypeId: roomId,
+      checkIn,
+      checkOut,
+      adults: numPersons,
       guestName,
       guestPhone,
       guestEmail,
       guestId,
       notes,
-      source,
-      totalAmount,
-      status: "PENDING",
-    },
-    include: { room: true },
+      totalPrice: totalAmount,
+      source: "motor_web",
+    }),
   });
 
+  const data = await res.json();
+  if (!res.ok) {
+    return NextResponse.json({ error: data.message ?? "Error al crear la reserva" }, { status: res.status });
+  }
+
+  const r = data.reservation ?? data;
   return NextResponse.json(
     {
       reservation: {
-        ...reservation,
-        room: { ...reservation.room, images: JSON.parse(reservation.room.images) },
+        id: r.confirmationCode ?? r.id,
+        roomId: r.roomTypeId,
+        checkIn: r.checkInDate ?? r.checkIn,
+        checkOut: r.checkOutDate ?? r.checkOut,
+        numPersons: r.adults ?? numPersons,
+        guestName: r.guestName,
+        guestPhone: r.guestPhone,
+        guestEmail: r.guestEmail,
+        status: r.status ?? "pending",
+        totalAmount: r.totalPrice ?? totalAmount,
+        depositPaid: 0,
+        createdAt: r.createdAt ?? new Date().toISOString(),
       },
     },
     { status: 201 }

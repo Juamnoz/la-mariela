@@ -12,7 +12,6 @@ import {
   Users,
   Home,
   User,
-  CreditCard,
   ChevronRight,
   ChevronLeft,
   Check,
@@ -28,8 +27,6 @@ type AvailableRoom = {
   name: string;
   type: string;
   maxPersons: number;
-  priceBase: number;
-  priceHigh: number;
   description: string;
   images: string[];
   nights: number;
@@ -43,7 +40,7 @@ const STEPS = [
   { label: "Fechas", icon: Calendar },
   { label: "Habitación", icon: Home },
   { label: "Datos", icon: User },
-  { label: "Pago", icon: CreditCard },
+  { label: "Confirmar", icon: Check },
 ];
 
 function useIsDesktop() {
@@ -263,7 +260,6 @@ export default function BookingForm() {
 
   // Step 4
   const [reservation, setReservation] = useState<{ id: string; totalAmount: number } | null>(null);
-  const [paymentUrl, setPaymentUrl] = useState("");
 
   const preselected = searchParams.get("room");
 
@@ -347,21 +343,13 @@ export default function BookingForm() {
           guestPhone,
           guestId: guestId || undefined,
           notes: notes || undefined,
-          source: "directo",
+          totalAmount: selectedRoom.totalPrice,
+          source: "motor_web",
         }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
       setReservation(data.reservation);
-
-      const payRes = await fetch("/api/pago", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ reservationId: data.reservation.id }),
-      });
-      const payData = await payRes.json();
-      if (payRes.ok) setPaymentUrl(payData.paymentUrl);
-
       goTo(4);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Error creando la reserva");
@@ -703,7 +691,7 @@ export default function BookingForm() {
           </motion.div>
         )}
 
-        {/* ── STEP 4: Payment ───────────────────────────────────────────── */}
+        {/* ── STEP 4: Confirmación + WhatsApp ──────────────────────────── */}
         {step === 4 && reservation && selectedRoom && (
           <motion.div
             key="step4"
@@ -734,7 +722,7 @@ export default function BookingForm() {
                 </svg>
               </div>
               <h2 className="font-heading text-xl font-semibold text-selva-dark">
-                ¡Reserva creada!
+                ¡Reserva confirmada!
               </h2>
               <p className="text-sm text-muted-foreground mt-1">
                 Código: <span className="font-mono font-semibold text-selva">{reservation.id}</span>
@@ -762,61 +750,34 @@ export default function BookingForm() {
                 <span>Total</span>
                 <span className="text-selva-dark">${reservation.totalAmount.toLocaleString("es-CO")} COP</span>
               </div>
+              <div className="flex justify-between text-xs text-muted-foreground">
+                <span>Anticipo (50%)</span>
+                <span>${Math.ceil(reservation.totalAmount * 0.5).toLocaleString("es-CO")} COP</span>
+              </div>
             </div>
 
-            {/* Payment CTAs */}
+            {/* WhatsApp CTA */}
             <div className="space-y-3">
-              {/* PRIMARY: full payment */}
+              <p className="text-sm text-center text-muted-foreground leading-relaxed">
+                Para confirmar tu lugar, contáctanos por WhatsApp y coordina el pago del anticipo.
+              </p>
               <motion.a
                 whileHover={{ scale: 1.01 }}
                 whileTap={{ scale: 0.99 }}
-                href={paymentUrl || `https://wa.me/573006168064?text=Hola%2C%20acabo%20de%20reservar%20(${reservation.id})%20y%20quiero%20pagar%20el%20total`}
+                href={`https://wa.me/573006168064?text=${encodeURIComponent(
+                  `Hola, acabo de hacer una reserva en Casa Hotel La Mariela.\n\n*Código:* ${reservation.id}\n*Habitación:* ${selectedRoom.name}\n*Fechas:* ${range.from ? format(range.from, "d MMM", { locale: es }) : ""} → ${range.to ? format(range.to, "d MMM yyyy", { locale: es }) : ""}\n*Personas:* ${persons}\n*Total:* $${reservation.totalAmount.toLocaleString("es-CO")} COP\n\nQuiero coordinar el pago del anticipo.`
+                )}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="w-full flex flex-col items-center justify-center gap-0.5 bg-selva hover:bg-selva-dark text-white font-semibold py-4 rounded-xl transition-colors text-center"
+                className="w-full flex items-center justify-center gap-3 bg-[#25D366] hover:bg-[#20bd5a] text-white font-semibold py-4 rounded-xl transition-colors"
               >
-                <span className="flex items-center gap-2 text-base">
-                  <CreditCard size={18} />
-                  Pagar ahora — ${reservation.totalAmount.toLocaleString("es-CO")} COP
-                </span>
-                <span className="text-white/70 text-xs font-normal">Pago completo · Confirmación inmediata</span>
+                <svg viewBox="0 0 24 24" className="w-5 h-5 fill-current">
+                  <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+                </svg>
+                Coordinar pago por WhatsApp
               </motion.a>
-
-              {/* SECONDARY: 50% offer */}
-              <motion.div
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.5, duration: 0.4, ease: appleEase }}
-                className="border-2 border-turquesa/40 bg-turquesa/5 rounded-xl p-4 space-y-3 relative overflow-hidden"
-              >
-                {/* Shimmer */}
-                <motion.div
-                  className="absolute inset-0 bg-gradient-to-r from-transparent via-turquesa/10 to-transparent"
-                  animate={{ x: ["-100%", "100%"] }}
-                  transition={{ duration: 2.5, repeat: Infinity, ease: "linear", repeatDelay: 1.5 }}
-                />
-                <div className="relative flex items-center gap-2">
-                  <span className="text-lg">✨</span>
-                  <span className="text-xs font-bold uppercase tracking-wider text-turquesa">Oferta especial</span>
-                </div>
-                <p className="relative text-sm text-selva-dark leading-relaxed">
-                  Asegura tu lugar hoy con solo el <strong>50%</strong>. El resto lo pagas cómodamente al llegar.
-                </p>
-                <motion.a
-                  whileHover={{ scale: 1.01 }}
-                  whileTap={{ scale: 0.99 }}
-                  href={paymentUrl || `https://wa.me/573006168064?text=Hola%2C%20quiero%20pagar%20el%2050%25%20de%20abono%20(${reservation.id})`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="relative w-full flex items-center justify-center gap-2 bg-turquesa hover:bg-selva text-white font-semibold py-3 rounded-lg transition-colors"
-                >
-                  Pagar 50% → ${Math.ceil(reservation.totalAmount * 0.5).toLocaleString("es-CO")} COP
-                  <ChevronRight size={16} />
-                </motion.a>
-              </motion.div>
-
               <p className="text-xs text-center text-muted-foreground">
-                Ambas opciones están seguras con Wompi · Transacción cifrada
+                Anticipo del 50% para confirmar · Saldo al llegar al hotel
               </p>
             </div>
           </motion.div>
