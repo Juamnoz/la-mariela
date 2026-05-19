@@ -69,8 +69,8 @@ export default function Navbar() {
 
         {/* CTA */}
         <div className="flex items-center gap-3">
-          <Link
-            href="/reservar"
+          <a
+            href="#motor"
             className={`hidden sm:inline-flex items-center px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-300 ${
               scrolled
                 ? "bg-selva text-white hover:bg-selva-dark"
@@ -78,7 +78,7 @@ export default function Navbar() {
             }`}
           >
             Reservar ahora
-          </Link>
+          </a>
           <button
             className={`md:hidden p-2 rounded-md transition-colors duration-300 ${
               scrolled ? "text-selva" : "text-white"
@@ -104,13 +104,13 @@ export default function Navbar() {
               {l.label}
             </a>
           ))}
-          <Link
-            href="/reservar"
+          <a
+            href="#motor"
             className="inline-flex justify-center items-center px-4 py-2 rounded-lg bg-selva text-white text-sm font-semibold"
             onClick={() => setOpen(false)}
           >
             Reservar ahora
-          </Link>
+          </a>
         </div>
       )}
     </header>

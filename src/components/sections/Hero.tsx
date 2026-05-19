@@ -44,7 +44,7 @@ export default function Hero() {
           hospitalidad auténtica te esperan en Sapzurro.
         </motion.p>
 
-        <motion.div {...fadeUp(0.55)}>
+        <motion.div {...fadeUp(0.55)} id="motor">
           <MotorIframe />
         </motion.div>
       </div>
