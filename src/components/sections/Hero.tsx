@@ -30,7 +30,7 @@ export default function Hero() {
       </div>
 
       {/* Content */}
-      <div className="relative z-10 text-center text-white px-4 max-w-4xl mx-auto pt-16">
+      <div className="relative z-10 text-center text-white px-4 max-w-4xl mx-auto pt-16 pb-20">
         <motion.div {...fadeUp(0.1)} className="inline-block bg-turquesa/20 backdrop-blur-sm border border-turquesa/30 text-turquesa-light text-xs font-semibold uppercase tracking-widest px-3 py-1 rounded-full mb-6">
           Sapzurro · Chocó · Colombia
         </motion.div>
