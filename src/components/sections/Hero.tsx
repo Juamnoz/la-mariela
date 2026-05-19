@@ -1,7 +1,7 @@
 "use client";
 import Image from "next/image";
 import { motion } from "framer-motion";
-import { BookingWidget } from "@/components/booking/BookingWidget";
+import MotorIframe from "@/components/booking/MotorIframe";
 
 const appleEase = [0.22, 1, 0.36, 1] as const;
 
@@ -45,7 +45,7 @@ export default function Hero() {
         </motion.p>
 
         <motion.div {...fadeUp(0.55)}>
-          <BookingWidget />
+          <MotorIframe />
         </motion.div>
       </div>
 
