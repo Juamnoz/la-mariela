@@ -14,7 +14,7 @@ const rooms = [
     name: "Habitación Triple",
     type: "1 a 3 personas",
     description:
-      "Perfecta para parejas o grupos de amigos. Tarifeada según el número de personas: 1P $120k · 2P $150k · 3P $210k por noche.",
+      "Perfecta para parejas o grupos de amigos. 1P $120k · 2P $150k · 3P $210k por noche (temporada baja).",
     priceFrom: 120000,
     maxPersons: 3,
     images: [
@@ -29,8 +29,8 @@ const rooms = [
     name: "Habitación Cuádruple",
     type: "Hasta 4 personas",
     description:
-      "Espaciosa y cómoda para grupos de 4. Disfruten juntos del paraíso chocoano con todos los servicios incluidos.",
-    priceFrom: 260000,
+      "Espaciosa y cómoda para grupos de 4. 3P $210k · 4P $260k por noche (temporada baja).",
+    priceFrom: 120000,
     maxPersons: 4,
     images: [
       "/images/hab-cuadruple-2.jpeg",
@@ -42,8 +42,8 @@ const rooms = [
     name: "Habitación Familiar",
     type: "3 a 5 personas",
     description:
-      "La más amplia de la casa, ideal para familias. 3P $210k · 4P $260k · 5P $320k por noche. ¡Espacio para todos!",
-    priceFrom: 210000,
+      "La más amplia de la casa, ideal para familias. 3P $210k · 4P $260k · 5P $320k por noche (temporada baja).",
+    priceFrom: 120000,
     maxPersons: 5,
     images: [
       "/images/hab-familiar-1.jpeg",
