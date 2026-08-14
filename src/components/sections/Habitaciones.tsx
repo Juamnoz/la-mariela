@@ -14,8 +14,8 @@ const rooms = [
     name: "Habitación Triple",
     type: "1 a 3 personas",
     description:
-      "Perfecta para parejas o grupos de amigos. 1P $120k · 2P $150k · 3P $210k por noche (temporada baja).",
-    priceFrom: 120000,
+      "Perfecta para parejas o grupos de amigos. 1P $160k · 2P $180k · 3P $240k por noche (temporada baja).",
+    priceFrom: 160000,
     maxPersons: 3,
     images: [
       "/images/hab-triple-2.jpeg",
@@ -29,8 +29,8 @@ const rooms = [
     name: "Habitación Cuádruple",
     type: "Hasta 4 personas",
     description:
-      "Espaciosa y cómoda para grupos de 4. 3P $210k · 4P $260k por noche (temporada baja).",
-    priceFrom: 120000,
+      "Espaciosa y cómoda para grupos de 4. 1P $160k · 2P $180k · 3P $240k · 4P $300k por noche (temporada baja).",
+    priceFrom: 160000,
     maxPersons: 4,
     images: [
       "/images/hab-cuadruple-2.jpeg",
@@ -42,8 +42,8 @@ const rooms = [
     name: "Habitación Familiar",
     type: "3 a 5 personas",
     description:
-      "La más amplia de la casa, ideal para familias. 3P $210k · 4P $260k · 5P $320k por noche (temporada baja).",
-    priceFrom: 120000,
+      "La más amplia de la casa, ideal para familias. 1P $160k · 2P $180k · 3P $240k · 4P $300k · 5P $350k por noche (temporada baja).",
+    priceFrom: 160000,
     maxPersons: 5,
     images: [
       "/images/hab-familiar-1.jpeg",
@@ -135,7 +135,7 @@ function RoomCard({ room, index }: { room: (typeof rooms)[0]; index: number }) {
               <span className="text-xs text-muted-foreground">Desde</span>
               <p className="font-semibold text-selva">
                 ${room.priceFrom.toLocaleString("es-CO")}
-                <span className="text-xs font-normal text-muted-foreground"> / noche</span>
+                <span className="text-xs font-normal text-muted-foreground"> / persona · noche</span>
               </p>
             </div>
             <Link
